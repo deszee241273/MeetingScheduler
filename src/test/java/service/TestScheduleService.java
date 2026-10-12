@@ -5,28 +5,22 @@ import static java.time.ZoneOffset.UTC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import domain.MeetingSchedule;
 
 class TestScheduleService {
 
-	private List<MeetingSchedule> meetingSchedules;
-
-	@BeforeEach
-	void init() {
-
-		meetingSchedules = new ArrayList<>();
-
-	}
-
 	@Test
-	@DisplayName("Time integration LocalDateTime. Long parameterization.")
+	@DisplayName("LocalDateTime, Long parameterization.")
 	void test_time() {
 
 		var start = now().atTime(14, 30).toEpochSecond(UTC);
@@ -37,9 +31,8 @@ class TestScheduleService {
 
 		var t1 = new MeetingSchedule<>(start, end, Long.class);
 		var t2 = new MeetingSchedule<>(start, expEnd, Long.class);
-		meetingSchedules.add(t1);
-		meetingSchedules.add(t2);
-		meetingSchedules.add(t2);
+
+		List<MeetingSchedule> meetingSchedules = List.of(t1, t2, t2);
 
 		var resolvedSchedules = ScheduleService.resolveScheduleOverlaps.apply(meetingSchedules);
 		assertEquals(1, resolvedSchedules.size());
@@ -50,25 +43,14 @@ class TestScheduleService {
 	}
 
 	@Test
-	@DisplayName("IllegalArgumentException expected as start parameter > end parameter. Long parameterization.")
-	void test_exp_exc_long_param() {
-
-		assertThrows(IllegalArgumentException.class, () -> {
-
-			new MeetingSchedule<>(4L, 3L, Long.class);
-		});
-	}
-
-	@Test
 	@DisplayName("No overlaps in meeting schedule. Integer parameterization.")
 	void test_integer_param_talk() {
 
 		var t1 = new MeetingSchedule<>(1, 3, Integer.class);
 		var t2 = new MeetingSchedule<>(3, 4, Integer.class);
 		var t3 = new MeetingSchedule<>(4, 6, Integer.class);
-		meetingSchedules.add(t1);
-		meetingSchedules.add(t2);
-		meetingSchedules.add(t3);
+
+		List<MeetingSchedule> meetingSchedules = List.of(t1, t2, t3);
 
 		assertEquals(meetingSchedules.size(), ScheduleService.resolveScheduleOverlaps.apply(meetingSchedules).size());
 	}
@@ -80,9 +62,7 @@ class TestScheduleService {
 		var t1 = new MeetingSchedule<>(1.5, 3.5, Double.class);
 		var t2 = new MeetingSchedule<>(3.9, 4d, Double.class);
 		var t3 = new MeetingSchedule<>(4.5, 6.5, Double.class);
-		meetingSchedules.add(t1);
-		meetingSchedules.add(t2);
-		meetingSchedules.add(t3);
+		List<MeetingSchedule> meetingSchedules = List.of(t1, t2, t3);
 
 		assertEquals(meetingSchedules.size(), ScheduleService.resolveScheduleOverlaps.apply(meetingSchedules).size());
 	}
@@ -95,11 +75,7 @@ class TestScheduleService {
 		var t2 = new MeetingSchedule<>(3d, 4d, Double.class);
 		var t3 = new MeetingSchedule<>(4d, 5d, Double.class);
 		var t4 = new MeetingSchedule<>(4d, 6d, Double.class);
-		meetingSchedules.add(t1);
-		meetingSchedules.add(t2);
-		meetingSchedules.add(t2);
-		meetingSchedules.add(t3);
-		meetingSchedules.add(t4);
+		List<MeetingSchedule> meetingSchedules = List.of(t1, t2, t2, t3, t4);
 
 		var resolvedSchedules = ScheduleService.resolveScheduleOverlaps.apply(meetingSchedules);
 		assertEquals(3, resolvedSchedules.size());
@@ -111,24 +87,22 @@ class TestScheduleService {
 
 	}
 
-	@Test
-	@DisplayName("IllegalArgumentException expected as start parameter > end parameter. Double parameterization.")
-	void test_exp_exc_double_param() {
+	@ParameterizedTest
+	@MethodSource("testArguments")
+	@DisplayName("IllegalArgumentException if start parameter > end parameter")
+	void test_exp_exc(Class cls) {
 
 		assertThrows(IllegalArgumentException.class, () -> {
 
-			new MeetingSchedule<>(4.5, 3.5, Double.class);
+			new MeetingSchedule<>(4L, 3L, cls);
 		});
 	}
 
-	@Test
-	@DisplayName("IllegalArgumentException as start parameter > end parameter. Integer parameterization.")
-	void test_exp_exc_integer_param() {
+	private static Stream<Arguments> testArguments() {
 
-		assertThrows(IllegalArgumentException.class, () -> {
+		return Stream.of(Arguments.of(Long.class), Arguments.of(Double.class), Arguments.of(Integer.class)
 
-			new MeetingSchedule<>(4, 3, Integer.class);
-		});
+		);
 	}
 
 }
